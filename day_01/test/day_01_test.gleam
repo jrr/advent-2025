@@ -1,4 +1,4 @@
-import day_01.{Left, Motion, parse, solve, solve2}
+import day_01.{parse, solve1, solve2}
 import gleeunit
 import gleeunit/should
 import input
@@ -16,15 +16,16 @@ pub fn hello_world_test() {
 }
 
 pub fn parse_test() {
-  "L23" |> parse |> should.equal(Motion(23, Left))
+  "L23" |> parse |> should.equal(-23)
+  "R42" |> parse |> should.equal(42)
 }
 
 pub fn example_1_test() {
-  input.example |> solve |> should.equal(3)
+  input.example |> solve1 |> should.equal(3)
 }
 
 pub fn problem_1_test() {
-  input.problem |> solve |> should.equal(1086)
+  input.problem |> solve1 |> should.equal(1086)
 }
 
 pub fn example_2_test() {
