@@ -1,4 +1,4 @@
-import day_01.{solve}
+import day_01.{Left, Motion, parse, solve}
 import gleeunit
 import gleeunit/should
 
@@ -12,6 +12,10 @@ pub fn hello_world_test() {
   let greeting = "Hello, " <> name <> "!"
 
   assert greeting == "Hello, Joe!"
+}
+
+pub fn parse_test() {
+  "L23" |> parse |> should.equal(Motion(23, Left))
 }
 
 pub fn example_test() {
