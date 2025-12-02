@@ -1,3 +1,4 @@
 [tools]
 "aqua:gleam-lang/gleam" = "latest"
 erlang = "latest"
+just = "latest"
