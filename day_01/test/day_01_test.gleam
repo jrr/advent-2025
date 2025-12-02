@@ -1,4 +1,4 @@
-import day_01.{parse, solve1, solve2}
+import day_01.{expand_motion, parse, solve1, solve2}
 import gleeunit
 import gleeunit/should
 import input
@@ -7,17 +7,14 @@ pub fn main() -> Nil {
   gleeunit.main()
 }
 
-// gleeunit test functions end in `_test`
-pub fn hello_world_test() {
-  let name = "Joe"
-  let greeting = "Hello, " <> name <> "!"
-
-  assert greeting == "Hello, Joe!"
-}
-
 pub fn parse_test() {
   "L23" |> parse |> should.equal(-23)
   "R42" |> parse |> should.equal(42)
+}
+
+pub fn expand_motion_test() {
+  3 |> expand_motion |> should.equal([1, 1, 1])
+  -5 |> expand_motion |> should.equal([-1, -1, -1, -1, -1])
 }
 
 pub fn example_1_test() {

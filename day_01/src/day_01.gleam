@@ -26,42 +26,45 @@ pub type IntermediateState {
 
 const initial_state = IntermediateState(50, 0)
 
-pub fn solve1(input: String) -> Int {
-  solve(input, False)
+pub fn expand_motion(motion: Int) -> List(Int) {
+  let value = motion / int.absolute_value(motion)
+  let howmany = int.absolute_value(motion)
+  list.repeat(value, howmany)
 }
 
-pub fn solve2(input: String) -> Int {
-  solve(input, True)
+pub type ExpandMode {
+  ExpandMotions
+  PassThrough
 }
 
-fn expand_motion(motion: Int) -> List(Int) {
-  case motion {
-    n if n > 0 -> list.repeat(1, n)
-    n if n < 0 -> list.repeat(-1, int.absolute_value(n))
-    _ -> panic
-  }
-}
-
-pub fn solve(input: String, expand: Bool) -> Int {
+pub fn solve(input: String, expand: ExpandMode) -> Int {
   input
   |> string.split("\n")
   |> list.map(parse)
   |> fn(motions) {
     case expand {
-      True -> list.flat_map(motions, expand_motion)
-      False -> motions
+      // turn e.g. [3] to [1,1,1] so that we can observe whenever it passes zero
+      ExpandMotions -> list.flat_map(motions, expand_motion)
+      PassThrough -> motions
     }
   }
   |> list.fold(initial_state, fn(state, motion) {
-    let assert Ok(new_pos) = int.modulo(state.position + motion, 100)
-    let x = case new_pos {
+    let new_pos = { state.position + motion } % 100
+    let on_zero = case new_pos {
       0 -> 1
       _ -> 0
     }
-    let new_count = state.zero_count + x
+    let new_count = state.zero_count + on_zero
 
-    let new_state = IntermediateState(new_pos, new_count)
-    new_state
+    IntermediateState(new_pos, new_count)
   })
   |> fn(state) { state.zero_count }
+}
+
+pub fn solve1(input: String) -> Int {
+  solve(input, PassThrough)
+}
+
+pub fn solve2(input: String) -> Int {
+  solve(input, ExpandMotions)
 }
