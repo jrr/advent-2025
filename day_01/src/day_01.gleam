@@ -49,7 +49,7 @@ pub fn solve(input: String, expand: ExpandMode) -> Int {
     }
   }
   |> list.fold(initial_state, fn(state, motion) {
-    let new_pos = { state.position + motion } % 100
+    let assert Ok(new_pos) = int.modulo({ state.position + motion }, 100)
     let on_zero = case new_pos {
       0 -> 1
       _ -> 0
