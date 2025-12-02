@@ -1,6 +1,7 @@
 import day_01.{Left, Motion, parse, solve}
 import gleeunit
 import gleeunit/should
+import input
 
 pub fn main() -> Nil {
   gleeunit.main()
@@ -19,17 +20,9 @@ pub fn parse_test() {
 }
 
 pub fn example_test() {
-  let input =
-    "L68
-L30
-R48
-L5
-R60
-L55
-L1
-L99
-R14
-L82"
+  input.example |> solve |> should.equal(3)
+}
 
-  solve(input) |> should.equal(3)
+pub fn problem_1_test() {
+  input.problem |> solve |> should.equal(1086)
 }
