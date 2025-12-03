@@ -29,7 +29,36 @@ pub fn score(input: #(Int, Int)) -> Int {
   input.0 * 10 + input.1
 }
 
-pub fn max_jolt(input: List(Int)) -> Int {
+pub fn score12(
+  input: #(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int),
+) -> Int {
+  input.0
+  * 100_000_000_000
+  + input.1
+  * 10_000_000_000
+  + input.2
+  * 1_000_000_000
+  + input.3
+  * 100_000_000
+  + input.4
+  * 10_000_000
+  + input.5
+  * 1_000_000
+  + input.6
+  * 100_000
+  + input.7
+  * 10_000
+  + input.8
+  * 1000
+  + input.9
+  * 100
+  + input.10
+  * 10
+  + input.11
+  * 1
+}
+
+pub fn max_jolt_2(input: List(Int)) -> Int {
   let assert [a, b, ..tail] = input
 
   let result =
@@ -45,17 +74,52 @@ pub fn max_jolt(input: List(Int)) -> Int {
   score(result)
 }
 
+pub fn max_jolt_12(input: List(Int)) -> Int {
+  let assert [a, b, c, d, e, f, g, h, i, j, k, l, ..tail] = input
+
+  let result =
+    tail
+    |> list.fold(#(a, b, c, d, e, f, g, h, i, j, k, l), fn(accum, n) {
+      let #(a, b, c, d, e, f, g, h, i, j, k, l) = accum
+      let candidates = [
+        #(a, b, c, d, e, f, g, h, i, j, k, l),
+        #(b, c, d, e, f, g, h, i, j, k, l, n),
+        #(a, c, d, e, f, g, h, i, j, k, l, n),
+        #(a, b, d, e, f, g, h, i, j, k, l, n),
+        #(a, b, c, e, f, g, h, i, j, k, l, n),
+        #(a, b, c, d, f, g, h, i, j, k, l, n),
+        #(a, b, c, d, e, g, h, i, j, k, l, n),
+        #(a, b, c, d, e, f, h, i, j, k, l, n),
+        #(a, b, c, d, e, f, g, i, j, k, l, n),
+        #(a, b, c, d, e, f, g, h, j, k, l, n),
+        #(a, b, c, d, e, f, g, h, i, k, l, n),
+        #(a, b, c, d, e, f, g, h, i, j, l, n),
+        #(a, b, c, d, e, f, g, h, i, j, k, n),
+      ]
+      let assert Ok(top) =
+        candidates |> list.max(fn(a, b) { int.compare(score12(a), score12(b)) })
+      top
+    })
+
+  score12(result)
+}
+
 pub fn solve1(input: String) -> Int {
   let parsed =
     input
     |> string.split("\n")
     |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
     |> list.map(parse)
-  let assert Ok(sum) = parsed |> list.map(max_jolt) |> list.reduce(int.add)
+  let assert Ok(sum) = parsed |> list.map(max_jolt_2) |> list.reduce(int.add)
   sum
 }
 
 pub fn solve2(input: String) -> Int {
-  todo
-  // solve(input)
+  let parsed =
+    input
+    |> string.split("\n")
+    |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
+    |> list.map(parse)
+  let assert Ok(sum) = parsed |> list.map(max_jolt_12) |> list.reduce(int.add)
+  sum
 }
