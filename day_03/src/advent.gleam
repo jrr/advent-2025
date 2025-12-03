@@ -17,37 +17,32 @@ pub fn parse(s: String) -> List(Int) {
   })
 }
 
+pub fn rebuild_integer(input: List(Int)) -> Int {
+  input |> list.fold(0, fn(accum, n) { accum * 10 + n })
+}
+
 pub fn score(input: #(Int, Int)) -> Int {
-  input.0 * 10 + input.1
+  [input.0, input.1] |> rebuild_integer
 }
 
 pub fn score12(
   input: #(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int),
 ) -> Int {
-  input.0
-  * 100_000_000_000
-  + input.1
-  * 10_000_000_000
-  + input.2
-  * 1_000_000_000
-  + input.3
-  * 100_000_000
-  + input.4
-  * 10_000_000
-  + input.5
-  * 1_000_000
-  + input.6
-  * 100_000
-  + input.7
-  * 10_000
-  + input.8
-  * 1000
-  + input.9
-  * 100
-  + input.10
-  * 10
-  + input.11
-  * 1
+  [
+    input.0,
+    input.1,
+    input.2,
+    input.3,
+    input.4,
+    input.5,
+    input.6,
+    input.7,
+    input.8,
+    input.9,
+    input.10,
+    input.11,
+  ]
+  |> rebuild_integer
 }
 
 pub fn max_jolt_2(input: List(Int)) -> Int {
