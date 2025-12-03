@@ -2,7 +2,6 @@ import gleam/bool
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/order
 import gleam/string
 
 pub fn main() -> Nil {
@@ -18,13 +17,6 @@ pub fn parse(s: String) -> List(Int) {
   })
 }
 
-// pub fn solve(input: String) -> Int {
-//   input
-//   |> string.split("\n")
-//   |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
-//   |> list.map(parse)
-//   |> list.fold(0, fn(a, b) { a + b })
-// }
 pub fn score(input: #(Int, Int)) -> Int {
   input.0 * 10 + input.1
 }
@@ -104,22 +96,20 @@ pub fn max_jolt_12(input: List(Int)) -> Int {
   score12(result)
 }
 
-pub fn solve1(input: String) -> Int {
+pub fn solve(input: String, max_jolt) {
   let parsed =
     input
     |> string.split("\n")
     |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
     |> list.map(parse)
-  let assert Ok(sum) = parsed |> list.map(max_jolt_2) |> list.reduce(int.add)
+  let assert Ok(sum) = parsed |> list.map(max_jolt) |> list.reduce(int.add)
   sum
 }
 
+pub fn solve1(input: String) -> Int {
+  solve(input, max_jolt_2)
+}
+
 pub fn solve2(input: String) -> Int {
-  let parsed =
-    input
-    |> string.split("\n")
-    |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
-    |> list.map(parse)
-  let assert Ok(sum) = parsed |> list.map(max_jolt_12) |> list.reduce(int.add)
-  sum
+  solve(input, max_jolt_12)
 }
