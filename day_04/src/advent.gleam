@@ -57,23 +57,18 @@ pub fn neighbors(grid: Grid, pos: #(Int, Int)) -> List(String) {
 
 pub fn solve(input: String) -> Int {
   let grid = input |> parse_grid
-  let neighbor_counts =
+  let valid_pulls =
     grid
     |> dict.keys
     |> list.filter(fn(pos) {
       let assert Ok(value) = dict.get(grid, pos)
       value == "@"
     })
-    |> list.map(fn(pos) {
-      neighbors(grid, pos) |> list.filter(fn(x) { x == "@" }) |> list.length
-    }) |> list.filter(fn(x) { x < 4 })
-  // echo neighbor_counts as "neighbor counts"
-  // input
-  // |> string.split("\n")
-  // |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
-  // |> list.map(parse)
-  // |> list.fold(0, fn(a, b) { a + b })
-  neighbor_counts |> list.length
+    |> list.filter(fn(pos) {
+      let num_neighbors = neighbors(grid, pos) |> list.filter(fn(x) { x == "@" }) |> list.length
+      num_neighbors < 4
+    })
+  valid_pulls |> list.length
 }
 
 pub fn solve1(input: String) -> Int {
