@@ -55,26 +55,53 @@ pub fn neighbors(grid: Grid, pos: #(Int, Int)) -> List(String) {
   what
 }
 
-pub fn solve(input: String) -> Int {
-  let grid = input |> parse_grid
-  let valid_pulls =
-    grid
-    |> dict.keys
-    |> list.filter(fn(pos) {
-      let assert Ok(value) = dict.get(grid, pos)
-      value == "@"
-    })
-    |> list.filter(fn(pos) {
-      let num_neighbors = neighbors(grid, pos) |> list.filter(fn(x) { x == "@" }) |> list.length
-      num_neighbors < 4
-    })
-  valid_pulls |> list.length
+pub fn which_rolls_can_be_pulled(grid: Grid) -> List(#(Int, Int)) {
+  grid
+  |> dict.keys
+  |> list.filter(fn(pos) {
+    let assert Ok(value) = dict.get(grid, pos)
+    value == "@"
+  })
+  |> list.filter(fn(pos) {
+    let num_neighbors =
+      neighbors(grid, pos) |> list.filter(fn(x) { x == "@" }) |> list.length
+    num_neighbors < 4
+  })
 }
 
 pub fn solve1(input: String) -> Int {
-  solve(input)
+  let grid = input |> parse_grid
+
+  let valid_pulls = which_rolls_can_be_pulled(grid)
+
+  valid_pulls |> list.length
+}
+
+pub fn count_rolls(grid: Grid) -> Int {
+  grid |> dict.values |> list.filter(fn(x) { x == "@" }) |> list.length
+}
+
+pub fn recurse(grid: Grid) -> Grid {
+  let valid_pulls = which_rolls_can_be_pulled(grid)
+  case list.is_empty(valid_pulls) {
+    True -> grid
+    False -> {
+      let grid_updates =
+        valid_pulls |> list.map(fn(pos) { #(pos, ".") }) |> dict.from_list
+      let updated_grid = dict.merge(grid, grid_updates)
+      recurse(updated_grid)
+    }
+  }
 }
 
 pub fn solve2(input: String) -> Int {
-  solve(input)
+  let grid = input |> parse_grid
+
+  let original_count = count_rolls(grid)
+
+  let final_grid = recurse(grid)
+  let final_count = count_rolls(final_grid)
+  let delta = original_count - final_count
+
+  delta
 }

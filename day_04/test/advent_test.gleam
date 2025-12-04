@@ -56,10 +56,10 @@ pub fn problem_1_test() {
   input.problem |> solve1 |> should.equal(1527)
 }
 
-// pub fn example_2_test() {
-//   input.example |> solve2 |> should.equal(6)
-// }
+pub fn example_2_test() {
+  input.example |> solve2 |> should.equal(43)
+}
 
-// pub fn problem_2_test() {
-//   input.problem |> solve2 |> should.equal(0)
-// }
+pub fn problem_2_test() {
+  input.problem |> solve2 |> should.equal(8690)
+}
