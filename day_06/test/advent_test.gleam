@@ -42,10 +42,10 @@ pub fn sort_test() {
 pub fn example_1_test() {
   input.example |> solve1 |> should.equal(4_277_556)
 }
-// pub fn problem_1_test() {
-//   input.problem |> solve1 |> should.equal(0)
-// }
 
+pub fn problem_1_test() {
+  input.problem |> solve1 |> should.equal(6_299_564_383_938)
+}
 // pub fn example_2_test() {
 //   input.example |> solve2 |> should.equal(6)
 // }
