@@ -99,5 +99,59 @@ pub fn sort(
 }
 
 pub fn solve2(input: String) -> Int {
-  todo
+  let lines =
+    input
+    |> string.split("\n")
+    |> list.filter(is_not_empty)
+  let number_of_lines = lines |> list.length
+  let #(digit_lines, op_lines) = lines |> list.split(number_of_lines - 1)
+
+  let assert [op_line] = op_lines
+  let ops =
+    op_line
+    |> string.split(" ")
+    |> list.filter(is_not_empty)
+    |> list.map(parse_op)
+  let assert Ok(line_length) =
+    lines |> list.map(string.length) |> list.max(int.compare)
+  let empties = list.repeat("", line_length)
+  let digit_groups =
+    digit_lines
+    |> list.fold(empties, fn(accum, line) {
+      let char_list = line |> string.to_graphemes
+      list.zip(accum, char_list)
+      |> list.map(fn(tuple) {
+        let #(a, b) = tuple
+        a <> b
+      })
+    })
+    |> list.map(string.trim)
+    |> split_on_empty_strings
+    |> list.map(fn(group) { group |> list.map(parse_int) })
+  let pairs = list.zip(ops, digit_groups)
+  let assert Ok(answer) =
+    pairs
+    |> list.map(fn(tuple) {
+      let #(op, nums) = tuple
+      let assert Ok(result) =
+        nums
+        |> list.reduce(fn(a, b) {
+          case op {
+            Add -> a + b
+            Multiply -> a * b
+          }
+        })
+      result
+    })
+    |> list.reduce(int.add)
+  answer
+}
+
+fn split_on_empty_strings(strings: List(String)) -> List(List(String)) {
+  let #(a, b) = strings |> list.split_while(fn(s) { s != "" })
+  case a, b {
+    a, [] -> [a]
+    a, ["", ..b] -> [a] |> list.append(split_on_empty_strings(b))
+    a, b -> [a] |> list.append(split_on_empty_strings(b))
+  }
 }
