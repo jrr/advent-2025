@@ -49,13 +49,14 @@ pub fn parse(s: String) {
   #(operations, nums)
 }
 
-pub fn solve(input: String) -> Int {
-  let #(ops, nums) = input |> parse
-  // let foo = ops |> list.index_map(fn (op){
+pub fn solve1(input: String) -> Int {
+  input
+  |> parse
+  |> sort
+  |> do_arithmetic
+}
 
-  // })
-  let sorted = sort(#(ops, nums))
-  // echo sorted
+fn do_arithmetic(sorted: List(#(Operation, List(Int)))) -> Int {
   let assert Ok(answer) =
     sorted
     |> list.map(fn(group) {
@@ -97,10 +98,6 @@ pub fn sort(
   sorted
 }
 
-pub fn solve1(input: String) -> Int {
-  solve(input)
-}
-
 pub fn solve2(input: String) -> Int {
-  solve(input)
+  todo
 }
