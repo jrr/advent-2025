@@ -1,4 +1,4 @@
-import advent.{parse, solve1, solve2}
+import advent.{Add, Multiply, parse, solve1, solve2}
 import gleeunit
 import gleeunit/should
 import input
@@ -8,7 +8,16 @@ pub fn main() -> Nil {
 }
 
 pub fn parse_test() {
-  "23" |> parse |> should.equal(23)
+  input.example
+  |> parse
+  |> should.equal(
+    #([[123, 328, 51, 64], [45, 64, 387, 23], [6, 98, 215, 314]], [
+      Multiply,
+      Add,
+      Multiply,
+      Add,
+    ]),
+  )
 }
 
 pub fn example_1_test() {
