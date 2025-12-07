@@ -12,17 +12,18 @@ pub fn main() -> Nil {
 // }
 
 pub fn example_1_test() {
-  input.example |> solve1 |> should.equal(21)
+  input.example |> solve1 |> fn(x){x.0}|> should.equal(21)
 }
 
 pub fn problem_1_test() {
-  input.problem |> solve1 |> should.equal(0)
+  input.problem |> solve1 |> fn(x){x.0}|> should.equal(1615)
 }
 
-// pub fn example_2_test() {
-//   input.example |> solve2 |> should.equal(6)
-// }
+pub fn example_2_test() {
+  input.example |> solve1 |> fn(x){x.1}|> should.equal(40)
+}
 
-// pub fn problem_2_test() {
-//   input.problem |> solve2 |> should.equal(0)
-// }
+pub fn problem_2_test() {
+  input.problem |> solve1 |> fn(x){x.1}|> should.equal(43560947406326)
+
+}

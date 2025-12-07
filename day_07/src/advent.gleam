@@ -22,25 +22,30 @@ pub fn solve(input: String) -> Int {
   |> list.fold(0, fn(a, b) { a + b })
 }
 
-pub fn parse_first_line(line: String) -> dict.Dict(Int, Bool) {
+pub fn parse_first_line(line: String) -> dict.Dict(Int, TachyonState) {
   line
   |> string.to_graphemes
   |> list.index_map(fn(c, i) {
     let b = case c {
-      "S" -> True
+      "S" -> Paths(1)
       // "." -> False
-      _ -> False
+      _ -> None
     }
     #(i, b)
   })
   |> dict.from_list
 }
 
-pub type State {
-  State(tachyons: dict.Dict(Int, Bool), num_splits: Int)
+pub type TachyonState {
+  None
+  Paths(Int)
 }
 
-pub fn solve1(input: String) -> Int {
+pub type State {
+  State(tachyons: dict.Dict(Int, TachyonState), num_splits: Int)
+}
+
+pub fn solve1(input: String) -> #(Int, Int) {
   let lines =
     input
     |> string.split("\n")
@@ -58,22 +63,46 @@ pub fn solve1(input: String) -> Int {
         |> list.index_map(fn(c, i) {
           let incoming_tachyon = state.tachyons |> dict.get(i)
           let #(new_pairs, num_new_splits) = case incoming_tachyon, c {
-            Ok(True), "." -> #([#(i, True)], 0)
-            Ok(True), "^" -> #([#(i - 1, True), #(i + 1, True)], 1)
+            Ok(None), _ -> #([], 0)
+            Ok(Paths(n)), "." -> #([#(i, Paths(n))], 0)
+            Ok(Paths(n)), "^" -> #([#(i - 1, Paths(n)), #(i + 1, Paths(n))], 1)
             _, _ -> #([], 0)
           }
           #(new_pairs, num_new_splits)
         })
 
-      let new_dict =
+      let assert Ok(new_dict) =
         updates
-        |> list.flat_map(fn(x) { x.0 })
-        |> dict.from_list
+        |> list.map(fn(x) { x.0 |> dict.from_list })
+        |> list.reduce(fn(a, b) {
+          dict.combine(a, b, fn(a, b) {
+            case a, b {
+              None, None -> None
+              None, Paths(x) -> Paths(x)
+              Paths(x), None -> Paths(x)
+              Paths(x), Paths(y) -> Paths(x + y)
+              _, _ -> panic
+            }
+          })
+        })
+
       let assert Ok(new_count) =
         updates |> list.map(fn(u) { u.1 }) |> list.reduce(int.add)
+
       State(new_dict, state.num_splits + new_count)
     })
-  final_state.num_splits
+  // final_state.tachyons 
+  let assert Ok(num_paths) =
+    final_state.tachyons
+    |> dict.to_list
+    |> list.map(fn(x) {
+      case x.1 {
+        None -> 0
+        Paths(n) -> n
+      }
+    })
+    |> list.reduce(int.add)
+  #(final_state.num_splits, num_paths)
 }
 
 pub fn solve2(input: String) -> Int {
