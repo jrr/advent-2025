@@ -9,26 +9,12 @@ pub fn main() -> Nil {
   io.println("Hello from advent!")
 }
 
-pub fn parse(s: String) -> Int {
-  let assert Ok(n) = int.parse(s)
-  n
-}
-
-pub fn solve(input: String) -> Int {
-  input
-  |> string.split("\n")
-  |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
-  |> list.map(parse)
-  |> list.fold(0, fn(a, b) { a + b })
-}
-
 pub fn parse_first_line(line: String) -> dict.Dict(Int, TachyonState) {
   line
   |> string.to_graphemes
   |> list.index_map(fn(c, i) {
     let b = case c {
       "S" -> Paths(1)
-      // "." -> False
       _ -> None
     }
     #(i, b)
@@ -45,7 +31,7 @@ pub type State {
   State(tachyons: dict.Dict(Int, TachyonState), num_splits: Int)
 }
 
-pub fn solve1(input: String) -> #(Int, Int) {
+pub fn solve(input: String) -> #(Int, Int) {
   let lines =
     input
     |> string.split("\n")
@@ -56,7 +42,6 @@ pub fn solve1(input: String) -> #(Int, Int) {
   let final_state =
     tail
     |> list.fold(initial_state, fn(state, line) {
-      // let #(old_state,split_count) = accum
       let updates =
         line
         |> string.to_graphemes
@@ -71,27 +56,37 @@ pub fn solve1(input: String) -> #(Int, Int) {
           #(new_pairs, num_new_splits)
         })
 
-      let assert Ok(new_dict) =
-        updates
-        |> list.map(fn(x) { x.0 |> dict.from_list })
-        |> list.reduce(fn(a, b) {
-          dict.combine(a, b, fn(a, b) {
-            case a, b {
-              None, None -> None
-              None, Paths(x) -> Paths(x)
-              Paths(x), None -> Paths(x)
-              Paths(x), Paths(y) -> Paths(x + y)
-              _, _ -> panic
-            }
-          })
-        })
+      let new_dict = build_new_dict(updates)
 
       let assert Ok(new_count) =
         updates |> list.map(fn(u) { u.1 }) |> list.reduce(int.add)
 
       State(new_dict, state.num_splits + new_count)
     })
-  // final_state.tachyons 
+
+  #(final_state.num_splits, count_paths(final_state))
+}
+
+fn build_new_dict(
+  updates: List(#(List(#(Int, TachyonState)), Int)),
+) -> dict.Dict(Int, TachyonState) {
+  let assert Ok(new_dict) =
+    updates
+    |> list.map(fn(x) { x.0 |> dict.from_list })
+    |> list.reduce(fn(a, b) {
+      dict.combine(a, b, fn(a, b) {
+        case a, b {
+          None, None -> None
+          None, Paths(x) -> Paths(x)
+          Paths(x), None -> Paths(x)
+          Paths(x), Paths(y) -> Paths(x + y)
+        }
+      })
+    })
+  new_dict
+}
+
+fn count_paths(final_state: State) -> Int {
   let assert Ok(num_paths) =
     final_state.tachyons
     |> dict.to_list
@@ -102,9 +97,5 @@ pub fn solve1(input: String) -> #(Int, Int) {
       }
     })
     |> list.reduce(int.add)
-  #(final_state.num_splits, num_paths)
-}
-
-pub fn solve2(input: String) -> Int {
-  solve(input)
+  num_paths
 }
