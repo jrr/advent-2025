@@ -1,5 +1,6 @@
 import advent.{
-  Point3, distance, merge_circuits, normalize_point_pair, parse, solve1,
+  NumRounds, Point3, UntilOneCircuit, distance, merge_circuits,
+  normalize_point_pair, parse, solve1,
 }
 import gleam/dict
 import gleeunit
@@ -58,17 +59,23 @@ pub fn normalize_point_pair_test() {
 }
 
 pub fn example_1_test() {
-  input.example |> solve1(10) |> should.equal(40)
+  input.example |> solve1(NumRounds(10)) |> fn(a) { a.0 } |> should.equal(40)
 }
 
 pub fn problem_1_test() {
-  input.problem |> solve1(1000) |> should.equal(103488)
+  input.problem |> solve1(NumRounds(1000)) |> fn(a) { a.0 } |> should.equal(103_488)
 }
 
-// pub fn example_2_test() {
-//   input.example |> solve2 |> should.equal(6)
-// }
+pub fn example_2_test() {
+  input.example
+  |> solve1(UntilOneCircuit)
+  |> fn(a) { a.1 }
+  |> should.equal(25_272)
+}
 
-// pub fn problem_2_test() {
-//   input.problem |> solve2 |> should.equal(0)
-// }
+pub fn problem_2_test() {
+  input.problem
+  |> solve1(UntilOneCircuit)
+  |> fn(a) { a.1 }
+  |> should.equal(8759985540)
+}

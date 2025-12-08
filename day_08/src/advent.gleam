@@ -28,8 +28,11 @@ pub type CircuitMembershipMap =
 pub type PointPair =
   #(Point3, Point3)
 
-pub type ConnectivityList =
+pub type ConnectivitySet =
   set.Set(PointPair)
+
+pub type ConnectivityList =
+  List(PointPair)
 
 pub fn normalize_point_pair(pp: PointPair) -> PointPair {
   let #(a, b) = pp
@@ -82,7 +85,12 @@ pub fn num_connections(circuits: List(List(Point3))) -> Int {
   n
 }
 
-pub fn solve1(input: String, num_desired_connections: Int) -> Int {
+pub type HowFar {
+  NumRounds(Int)
+  UntilOneCircuit
+}
+
+pub fn solve1(input: String, how_far: HowFar) -> #(Int, Int) {
   let points = parse(input)
   let circuits: CircuitMembershipMap =
     points
@@ -108,13 +116,8 @@ pub fn solve1(input: String, num_desired_connections: Int) -> Int {
       float.compare(d1, d2)
     })
 
-  let new_circuits =
-    recurse(
-      closest_first,
-      circuits,
-      [] |> set.from_list,
-      num_desired_connections,
-    )
+  let #(new_circuits, connections) =
+    recurse(closest_first, circuits, [] |> set.from_list, [], how_far)
 
   let circuit_names = new_circuits |> dict.values
 
@@ -127,61 +130,59 @@ pub fn solve1(input: String, num_desired_connections: Int) -> Int {
     |> list.take(3)
 
   let assert Ok(product) = lengths |> list.reduce(int.multiply)
-  product
+
+  let assert Ok(last_box) = connections |> list.first
+
+  #(product, { last_box.0 }.x * { last_box.1 }.x)
 }
 
 fn recurse(
   closest_first: List(#(Point3, Point3)),
   circuits: CircuitMembershipMap,
-  connectivity: ConnectivityList,
-  num_desired_connections: Int,
-) -> CircuitMembershipMap {
-  echo num_desired_connections as "countdown"
-  case num_desired_connections {
-    0 -> circuits
-    _ -> {
-      // let candidate_joins =
-      //   circuits
-      //   |> to_points
-      //   |> list.combination_pairs
-      //   |> list.filter(fn(pair) {
-      //     let #(a, b) = pair
+  connectivity_set: ConnectivitySet,
+  connectivity_list: ConnectivityList,
+  how_far: HowFar,
+) -> #(CircuitMembershipMap, ConnectivityList) {
+  // echo num_desired_connections as "countdown"
+  case how_far {
+    NumRounds(0) -> #(circuits, connectivity_list)
+    how_far -> {
+      case closest_first {
+        [] -> panic
+        [top_join, ..tail] -> {
+          let normalized_pair =
+            normalize_point_pair(#({ top_join.0 }, { top_join.1 }))
+          let assert Ok(label_a) = circuits |> dict.get(top_join.0)
+          let assert Ok(label_b) = circuits |> dict.get(top_join.1)
 
-      //     let normalized_pair = normalize_point_pair(#(a.point, b.point))
-      //     connectivity |> set.contains(normalized_pair) |> bool.negate
-      //   })
-      // let assert Ok(top_join) =
-      //   candidate_joins
-      //   |> list.filter(fn(pair) {
-      //     let #(a, b) = pair
+          let merged = merge_circuits(circuits, label_a, label_b)
 
-      //     let normalized_pair = normalize_point_pair(#(a.point, b.point))
-      //     connectivity |> set.contains(normalized_pair) |> bool.negate
-      //   })
-      //   |> list.max(fn(pair1, pair2) {
-      //     let #(a1, b1) = pair1
-      //     let #(a2, b2) = pair2
-      //     let d1 = distance(a1.point, b1.point)
-      //     let d2 = distance(a2.point, b2.point)
-      //     order.negate(float.compare(d1, d2))
-      //   })
+          let num_circuits = merged |> dict.values |> list.unique |> list.length
 
-      let assert [top_join, ..tail] = closest_first
-      // echo "same?:"
-      // echo head
-      // echo top_join
+          let new_connectivity_set =
+            connectivity_set |> set.insert(normalized_pair)
+          // echo normalized_pair as "new connection"
+          let new_connectivity_list = [normalized_pair, ..connectivity_list]
 
-      let normalized_pair =
-        normalize_point_pair(#({ top_join.0 }, { top_join.1 }))
-      let assert Ok(label_a) = circuits |> dict.get(top_join.0)
-      let assert Ok(label_b) = circuits |> dict.get(top_join.1)
+          let go_until = case how_far {
+            UntilOneCircuit -> UntilOneCircuit
+            NumRounds(n) -> NumRounds(n - 1)
+          }
 
-      let merged =
-        merge_circuits(circuits, label_a, label_b)
-
-      let new_connectivity = connectivity |> set.insert(normalized_pair)
-
-      recurse(tail, merged, new_connectivity, num_desired_connections - 1)
+          case list.length(tail), num_circuits {
+            0, _ -> #(merged, new_connectivity_list)
+            _, 1 -> #(merged, new_connectivity_list)
+            _, _ ->
+              recurse(
+                tail,
+                merged,
+                new_connectivity_set,
+                new_connectivity_list,
+                go_until,
+              )
+          }
+        }
+      }
     }
   }
 }
