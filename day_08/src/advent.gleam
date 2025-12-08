@@ -5,6 +5,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/order
+import gleam/set
 import gleam/string
 
 pub fn main() -> Nil {
@@ -20,8 +21,34 @@ fn parse_int(s: String) -> Int {
   x
 }
 
-pub type CircuitMap =
+pub type CircuitMembershipMap =
   dict.Dict(Point3, String)
+
+pub type PointPair =
+  #(Point3, Point3)
+
+pub type ConnectivityList =
+  set.Set(PointPair)
+
+pub fn normalize_point_pair(pp: PointPair) -> PointPair {
+  let #(a, b) = pp
+  let assert [x, y] = [a, b] |> list.sort(compare_points)
+  #(x, y)
+}
+
+fn compare_points(a: Point3, b: Point3) -> order.Order {
+  case int.compare(a.x, b.x) {
+    order.Eq -> {
+      case int.compare(a.y, b.y) {
+        order.Eq -> {
+          int.compare(a.z, b.z)
+        }
+        other -> other
+      }
+    }
+    other -> other
+  }
+}
 
 pub type LabeledPoint {
   LabeledPoint(point: Point3, label: String)
@@ -56,51 +83,71 @@ pub fn num_connections(circuits: List(List(Point3))) -> Int {
 
 pub fn solve1(input: String, num_desired_connections: Int) -> Int {
   let points = parse(input)
-  let circuits: CircuitMap =
+  let circuits: CircuitMembershipMap =
     points
     |> list.index_map(fn(p, i) { #(p, "C" <> int.to_string(i)) })
     |> dict.from_list
 
-  let new_circuits = recurse(circuits, num_desired_connections)
+  let new_circuits =
+    recurse(circuits, [] |> set.from_list, num_desired_connections)
+
+  let circuit_names = new_circuits |> dict.values
 
   let lengths =
-    new_circuits
-    |> list.map(fn(circuit) { list.length(circuit) })
+    circuit_names
+    |> list.group(by: fn(g) { g })
+    |> dict.values
+    |> list.map(list.length)
     |> list.sort(order.reverse(int.compare))
     |> list.take(3)
-  echo lengths as "three longest"
+
   let assert Ok(product) = lengths |> list.reduce(int.multiply)
   product
 }
 
 fn recurse(
-  circuits: CircuitMap,
+  circuits: CircuitMembershipMap,
+  connectivity: ConnectivityList,
   num_desired_connections: Int,
-) -> List(List(Point3)) {
-  let candidate_joins = circuits |> to_points |> list.combination_pairs
-  let assert Ok(top_join) =
-    candidate_joins
-    |> list.filter(fn(pair) {
-      let #(a, b) = pair
-      a.label != b.label
-    })
-    |> list.max(fn(pair1, pair2) {
-      let #(a1, b1) = pair1
-      let #(a2, b2) = pair2
-      let d1 = distance(a1.point, b1.point)
-      let d2 = distance(a2.point, b2.point)
-      order.negate(float.compare(d1, d2))
-    })
-  let merged =
-    merge_circuits(circuits, { top_join.0 }.label, { top_join.1 }.label)
-  todo
+) -> CircuitMembershipMap {
+  // echo num_desired_connections as "rounds left"
+  case num_desired_connections {
+    0 -> circuits
+    _ -> {
+      let candidate_joins = circuits |> to_points |> list.combination_pairs
+      let assert Ok(top_join) =
+        candidate_joins
+        |> list.filter(fn(pair) {
+          let #(a, b) = pair
+
+          let normalized_pair = normalize_point_pair(#(a.point, b.point))
+          connectivity |> set.contains(normalized_pair) |> bool.negate
+        })
+        |> list.max(fn(pair1, pair2) {
+          let #(a1, b1) = pair1
+          let #(a2, b2) = pair2
+          let d1 = distance(a1.point, b1.point)
+          let d2 = distance(a2.point, b2.point)
+          order.negate(float.compare(d1, d2))
+        })
+      let normalized_pair =
+        normalize_point_pair(#({ top_join.0 }.point, { top_join.1 }.point))
+
+      let merged =
+        merge_circuits(circuits, { top_join.0 }.label, { top_join.1 }.label)
+
+      let new_connectivity = connectivity |> set.insert(normalized_pair)
+
+      recurse(merged, new_connectivity, num_desired_connections - 1)
+    }
+  }
 }
 
 pub fn merge_circuits(
-  circuits: CircuitMap,
+  circuits: CircuitMembershipMap,
   label_a: String,
   label_b: String,
-) -> CircuitMap {
+) -> CircuitMembershipMap {
   let updates =
     circuits
     |> to_points
@@ -119,7 +166,7 @@ fn to_points(input: dict.Dict(Point3, String)) -> List(LabeledPoint) {
   })
 }
 
-fn to_map(input: List(LabeledPoint)) -> CircuitMap {
+fn to_map(input: List(LabeledPoint)) -> CircuitMembershipMap {
   input |> list.map(fn(p) { #(p.point, p.label) }) |> dict.from_list
 }
 
