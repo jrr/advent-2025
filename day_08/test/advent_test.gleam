@@ -62,7 +62,7 @@ pub fn example_1_test() {
 }
 
 pub fn problem_1_test() {
-  input.problem |> solve1(1000) |> should.equal(0)
+  input.problem |> solve1(1000) |> should.equal(103488)
 }
 
 // pub fn example_2_test() {

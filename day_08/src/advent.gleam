@@ -5,6 +5,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/order
+import gleam/pair
 import gleam/set
 import gleam/string
 
@@ -88,8 +89,32 @@ pub fn solve1(input: String, num_desired_connections: Int) -> Int {
     |> list.index_map(fn(p, i) { #(p, "C" <> int.to_string(i)) })
     |> dict.from_list
 
+  let candidate_joins =
+    circuits
+    |> to_points
+    |> list.combination_pairs
+    |> list.map(fn(pair) {
+      let #(a, b) = pair
+      #(a.point, b.point)
+    })
+
+  let closest_first =
+    candidate_joins
+    |> list.sort(fn(pair1, pair2) {
+      let #(a1, b1) = pair1
+      let #(a2, b2) = pair2
+      let d1 = distance(a1, b1)
+      let d2 = distance(a2, b2)
+      float.compare(d1, d2)
+    })
+
   let new_circuits =
-    recurse(circuits, [] |> set.from_list, num_desired_connections)
+    recurse(
+      closest_first,
+      circuits,
+      [] |> set.from_list,
+      num_desired_connections,
+    )
 
   let circuit_names = new_circuits |> dict.values
 
@@ -106,39 +131,57 @@ pub fn solve1(input: String, num_desired_connections: Int) -> Int {
 }
 
 fn recurse(
+  closest_first: List(#(Point3, Point3)),
   circuits: CircuitMembershipMap,
   connectivity: ConnectivityList,
   num_desired_connections: Int,
 ) -> CircuitMembershipMap {
-  // echo num_desired_connections as "rounds left"
+  echo num_desired_connections as "countdown"
   case num_desired_connections {
     0 -> circuits
     _ -> {
-      let candidate_joins = circuits |> to_points |> list.combination_pairs
-      let assert Ok(top_join) =
-        candidate_joins
-        |> list.filter(fn(pair) {
-          let #(a, b) = pair
+      // let candidate_joins =
+      //   circuits
+      //   |> to_points
+      //   |> list.combination_pairs
+      //   |> list.filter(fn(pair) {
+      //     let #(a, b) = pair
 
-          let normalized_pair = normalize_point_pair(#(a.point, b.point))
-          connectivity |> set.contains(normalized_pair) |> bool.negate
-        })
-        |> list.max(fn(pair1, pair2) {
-          let #(a1, b1) = pair1
-          let #(a2, b2) = pair2
-          let d1 = distance(a1.point, b1.point)
-          let d2 = distance(a2.point, b2.point)
-          order.negate(float.compare(d1, d2))
-        })
+      //     let normalized_pair = normalize_point_pair(#(a.point, b.point))
+      //     connectivity |> set.contains(normalized_pair) |> bool.negate
+      //   })
+      // let assert Ok(top_join) =
+      //   candidate_joins
+      //   |> list.filter(fn(pair) {
+      //     let #(a, b) = pair
+
+      //     let normalized_pair = normalize_point_pair(#(a.point, b.point))
+      //     connectivity |> set.contains(normalized_pair) |> bool.negate
+      //   })
+      //   |> list.max(fn(pair1, pair2) {
+      //     let #(a1, b1) = pair1
+      //     let #(a2, b2) = pair2
+      //     let d1 = distance(a1.point, b1.point)
+      //     let d2 = distance(a2.point, b2.point)
+      //     order.negate(float.compare(d1, d2))
+      //   })
+
+      let assert [top_join, ..tail] = closest_first
+      // echo "same?:"
+      // echo head
+      // echo top_join
+
       let normalized_pair =
-        normalize_point_pair(#({ top_join.0 }.point, { top_join.1 }.point))
+        normalize_point_pair(#({ top_join.0 }, { top_join.1 }))
+      let assert Ok(label_a) = circuits |> dict.get(top_join.0)
+      let assert Ok(label_b) = circuits |> dict.get(top_join.1)
 
       let merged =
-        merge_circuits(circuits, { top_join.0 }.label, { top_join.1 }.label)
+        merge_circuits(circuits, label_a, label_b)
 
       let new_connectivity = connectivity |> set.insert(normalized_pair)
 
-      recurse(merged, new_connectivity, num_desired_connections - 1)
+      recurse(tail, merged, new_connectivity, num_desired_connections - 1)
     }
   }
 }
