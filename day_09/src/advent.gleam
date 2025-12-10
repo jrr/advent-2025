@@ -2,7 +2,6 @@ import gleam/bool
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/order
 import gleam/string
 
 pub fn main() -> Nil {
@@ -14,9 +13,6 @@ fn parse_int(s: String) -> Int {
   x
 }
 
-pub type Point =
-  #(Int, Int)
-
 pub type Point2 {
   Point2(x: Int, y: Int)
 }
@@ -25,24 +21,25 @@ pub type LineSegment {
   LineSegment(start: Point2, end: Point2)
 }
 
-pub type RectangleCorners =
-  #(Point, Point)
+pub type RectangleCorners {
+  RectangleCorners(a: Point2, b: Point2)
+}
 
-pub fn parse(s: String) -> List(Point) {
+pub fn parse(s: String) -> List(Point2) {
   s
   |> string.split("\n")
   |> list.filter(fn(x) { bool.negate(string.is_empty(x)) })
   |> list.map(fn(line) {
     let parts = line |> string.trim() |> string.split(",")
     let assert [x, y] = parts |> list.map(parse_int)
-    #(x, y)
+    Point2(x, y)
   })
 }
 
 pub fn rectangle_area(corners: RectangleCorners) -> Int {
-  let #(p1, p2) = corners
-  let area1 = int.absolute_value(p1.0 - p2.0) + 1
-  let area2 = int.absolute_value(p1.1 - p2.1) + 1
+  let RectangleCorners(p1, p2) = corners
+  let area1 = int.absolute_value(p1.x - p2.x) + 1
+  let area2 = int.absolute_value(p1.y - p2.y) + 1
   area1 * area2
 }
 
@@ -51,171 +48,130 @@ pub fn solve1(input: String) -> Int {
     input
     |> parse
     |> list.combination_pairs
+    |> list.map(fn(p) { RectangleCorners(p.0, p.1) })
     |> list.max(fn(a, b) { int.compare(rectangle_area(a), rectangle_area(b)) })
 
   rectangle_area(largest)
 }
 
-// 28 candidate rectangles in example
-// 122760 in real problem
-
 pub fn solve2(input: String) -> Int {
-  // all combination pairs
-  // filter out rectangles that internally contain any other point
-  //   (it's okay for other points to sit along the rectangle's edge)
-  // filter out rectangles that intersect any other line segment
-
   let points = input |> parse
-  let pairs = points |> list.combination_pairs
-
-  echo "initial points: " <> int.to_string(pairs |> list.length)
+  let pairs =
+    points
+    |> list.combination_pairs
+    |> list.map(fn(p) { RectangleCorners(p.0, p.1) })
 
   let assert Ok(top) =
     pairs
     |> list.filter(fn(p) { does_not_contain_any_points(p, points) })
-    |> fn(l) {
-      echo "narrowed (points): " <> int.to_string(list.length(l))
-      l
-    }
     |> list.filter(fn(p) { does_not_intersect_any_lines(p, points) })
-    |> fn(l) {
-      echo "narrowed (edges): " <> int.to_string(list.length(l))
-      l
-    }
     |> list.max(fn(a, b) { int.compare(rectangle_area(a), rectangle_area(b)) })
-  echo top as "top"
 
   rectangle_area(top)
 }
 
 pub fn does_not_intersect_any_lines(
   corners: RectangleCorners,
-  points: List(Point),
+  points: List(Point2),
 ) -> Bool {
-  let contained_lines = points |> list.window_by_2
+  let contained_lines =
+    points |> list.window_by_2 |> list.map(fn(l) { LineSegment(l.0, l.1) })
   let assert Ok(first_point) = points |> list.first
   let assert Ok(last_point) = points |> list.last
-  let last_line = #(last_point, first_point)
-  let lines =
-    [last_line, ..contained_lines]
-    |> list.map(fn(z) {
-      let #(#(a, b), #(c, d)) = z
-      LineSegment(Point2(a, b), Point2(c, d))
-    })
+  let last_line = LineSegment(last_point, first_point)
+  let lines = [last_line, ..contained_lines]
 
-  let has_any =
-    lines |> list.any(fn(line) { line_intersects_rectangle(corners, line) })
-  !has_any
+  lines
+  |> list.any(fn(line) { line_passes_through_rectangle(corners, line) })
+  |> bool.negate
 }
 
-fn line_intersects_rectangle(
-  corners: #(#(Int, Int), #(Int, Int)),
+// Check if a line segment passes through the interior of a rectangle
+// (not just touching the boundary)
+fn line_passes_through_rectangle(
+  corners: RectangleCorners,
   line: LineSegment,
 ) -> Bool {
-  let #(#(x1, y1), #(x2, y2)) = corners
-  let rectangle_edges =
-    [
-      #(#(x1, y1), #(x2, y1)),
-      #(#(x1, y1), #(x1, y2)),
-      #(#(x2, y1), #(x2, y2)),
-      #(#(x1, y2), #(x2, y2)),
-    ]
-    |> list.map(fn(z) {
-      let #(#(a, b), #(c, d)) = z
-      LineSegment(Point2(a, b), Point2(c, d))
-    })
+  let RectangleCorners(Point2(x_min, y_min), Point2(x_max, y_max)) = corners
+  // Ensure min/max order
+  let rect_x_min = int.min(x_min, x_max)
+  let rect_x_max = int.max(x_min, x_max)
+  let rect_y_min = int.min(y_min, y_max)
+  let rect_y_max = int.max(y_min, y_max)
 
-  let any_intersect =
-    rectangle_edges
-    |> list.any(fn(edge) { line_segments_intersect(#(edge, line)) })
-  any_intersect
+  let LineSegment(Point2(x1, y1), Point2(x2, y2)) = line
+
+  // Simple check: does the line cross through the rectangle?
+  // A horizontal/vertical line passes through if it spans the rectangle
+  // and its other coordinate is within the rectangle bounds
+
+  // Check for horizontal line
+  let is_horizontal = y1 == y2
+  let horizontal_passes =
+    is_horizontal
+    && y1 > rect_y_min
+    && y1 < rect_y_max
+    // y is strictly inside rectangle
+    && int.min(x1, x2) < rect_x_max
+    && int.max(x1, x2) > rect_x_min
+  // line spans rectangle in x
+
+  // Check for vertical line
+  let is_vertical = x1 == x2
+  let vertical_passes =
+    is_vertical
+    && x1 > rect_x_min
+    && x1 < rect_x_max
+    // x is strictly inside rectangle
+    && int.min(y1, y2) < rect_y_max
+    && int.max(y1, y2) > rect_y_min
+  // line spans rectangle in y
+
+  // For diagonal lines, check if line passes through rectangle interior
+  let diagonal_passes =
+    !is_horizontal
+    && !is_vertical
+    && {
+      // Check if either endpoint is strictly inside
+      let p1_inside =
+        x1 > rect_x_min && x1 < rect_x_max && y1 > rect_y_min && y1 < rect_y_max
+      let p2_inside =
+        x2 > rect_x_min && x2 < rect_x_max && y2 > rect_y_min && y2 < rect_y_max
+
+      // Or if line crosses from one side to another (simplified check)
+      let crosses_x =
+        { x1 <= rect_x_min && x2 >= rect_x_max }
+        || { x1 >= rect_x_max && x2 <= rect_x_min }
+      let crosses_y =
+        { y1 <= rect_y_min && y2 >= rect_y_max }
+        || { y1 >= rect_y_max && y2 <= rect_y_min }
+
+      p1_inside || p2_inside || { crosses_x && crosses_y }
+    }
+
+  horizontal_passes || vertical_passes || diagonal_passes
 }
 
 fn does_not_contain_any_points(
   corners: RectangleCorners,
-  points: List(Point),
+  points: List(Point2),
 ) -> Bool {
-  let has_any =
-    points
-    |> list.any(fn(p) { point_inside_rectangle(corners, p) })
-  !has_any
+  points
+  |> list.any(fn(p) { point_inside_rectangle(corners, p) })
+  |> bool.negate
 }
 
-fn point_inside_rectangle(
-  corners: #(#(Int, Int), #(Int, Int)),
-  p: #(Int, Int),
-) -> Bool {
-  let point_between_x = case corners.0.0, p.0, corners.1.0 {
+fn point_inside_rectangle(corners: RectangleCorners, p: Point2) -> Bool {
+  let point_between_x = case { corners.a }.x, p.x, { corners.b }.x {
     a, b, c if a < b && b < c -> True
     a, b, c if a > b && b > c -> True
     _, _, _ -> False
   }
 
-  let point_between_y = case corners.0.1, p.1, corners.1.1 {
+  let point_between_y = case { corners.a }.y, p.y, { corners.b }.y {
     a, b, c if a < b && b < c -> True
     a, b, c if a > b && b > c -> True
     _, _, _ -> False
   }
   point_between_x && point_between_y
 }
-
-// Helper function to calculate orientation of ordered triplet (p, q, r)
-// Returns 0 if collinear, 1 if clockwise, 2 if counterclockwise
-fn orientation(p: Point2, q: Point2, r: Point2) -> Int {
-  let val = { q.y - p.y } * { r.x - q.x } - { q.x - p.x } * { r.y - q.y }
-  case val {
-    0 -> 0
-    // collinear
-    _ if val > 0 -> 1
-    // clockwise
-    _ -> 2
-    // counterclockwise
-  }
-}
-
-// Helper function to check if point q lies on line segment
-fn on_segment(segment: LineSegment, q: Point2) -> Bool {
-  let LineSegment(p, r) = segment
-  q.x <= int.max(p.x, r.x)
-  && q.x >= int.min(p.x, r.x)
-  && q.y <= int.max(p.y, r.y)
-  && q.y >= int.min(p.y, r.y)
-}
-
-pub fn line_segments_intersect(lines: #(LineSegment, LineSegment)) -> Bool {
-  let #(line1, line2) = lines
-  let LineSegment(p1, q1) = line1
-  let LineSegment(p2, q2) = line2
-
-  let o1 = orientation(p1, q1, p2)
-  let o2 = orientation(p1, q1, q2)
-  let o3 = orientation(p2, q2, p1)
-  let o4 = orientation(p2, q2, q1)
-
-  // Check if lines share endpoint(s) or are collinear
-  let shares_endpoints =
-    points_equal(p1, p2) || points_equal(p1, q2) ||
-    points_equal(q1, p2) || points_equal(q1, q2)
-
-  let are_collinear = o1 == 0 && o2 == 0 && o3 == 0 && o4 == 0
-
-  case shares_endpoints || are_collinear {
-    True -> False  // Sharing endpoints or being collinear doesn't count as intersection
-    False -> {
-      // Only count as intersection if segments properly cross each other
-      // (different orientations means they cross)
-      o1 != o2 && o3 != o4
-    }
-  }
-}
-
-// Helper to check if two points are equal
-fn points_equal(p1: Point2, p2: Point2) -> Bool {
-  p1.x == p2.x && p1.y == p2.y
-}
-// fn does_not_contain_point(
-//   points: List(Point),
-// ) -> fn(#(Point, Point)) -> Bool {
-//   let contains_any = points |> list.any()
-//   todo
-// }
