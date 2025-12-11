@@ -169,12 +169,10 @@ pub fn solve_machine_joltage(machine: Machine) -> Int {
   // e.g. [0x0, 0x1], [1x0, 1x1], ...
   let all_combinations: List(List(ButtonWithNumPresses)) =
     expand_combos(how_many_max_of_each)
-  // how_many_of_each |> all_button_press_combinations
 
   let empty = list.repeat(0, num_lights)
 
   let solutions_found = recurse2(0, [], empty, goal, all_combinations)
-  // echo "found " <> int.to_string(list.length(solutions_found)) <> " solutions"
   let shortest =
     solutions_found
     |> list.filter_map(fn(sol) {
@@ -183,18 +181,7 @@ pub fn solve_machine_joltage(machine: Machine) -> Int {
         _ -> Error(Nil)
       }
     })
-    // let num_clicks = shortest |> list.map(fn(sol){
-    // })
     |> list.flatten
-  // echo { shortest |> list.length } as "number of solutions"
-  // echo shortest as "SHORTEST"
-  // shortest
-  // |> list.map(fn(sol) {
-  //   let score: Int = score_solution(sol)
-
-  //   echo score as "score"
-  //   echo sol
-  // })
   let assert Ok(winner) =
     shortest
     |> list.map(score_solution)
@@ -237,7 +224,7 @@ fn recurse2(
     order.Gt -> [Overflowed]
     order.Eq -> [MetGoal([the_presses_so_far])]
     order.Lt -> {
-      let what = case all_combinations {
+      case all_combinations {
         [first_button, ..remaining_buttons] -> {
           first_button
           |> list.map(fn(presses_of_one_button) {
@@ -298,7 +285,6 @@ fn recurse2(
         }
         [] -> [Empty]
       }
-      what
     }
   }
 }

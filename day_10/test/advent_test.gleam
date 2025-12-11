@@ -55,25 +55,12 @@ pub fn digits_to_int_test() {
   [0, 7, 2] |> digits_to_int |> should.equal(72)
 }
 
-// pub fn simple_joltage_test() {
-//   "[.##] (2) (0) (1) {2,3,4}"
-//   |> parse_line
-//   |> solve_machine_joltage
-//   |> should.equal(9)
-// }
-
 pub fn compare_test() {
   assert compare([0, 7, 2], [2, 3, 4]) == order.Gt
   assert compare([2, 3, 4], [2, 7, 5]) == order.Lt
   assert compare([3, 2, 1], [3, 2, 1]) == order.Eq
 }
 
-// pub fn ex1_first_line_joltage_test() {
-//   "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}"
-//   |> parse_line
-//   |> solve_machine_joltage
-//   |> should.equal(10)
-// }
 pub fn add_digits_test() {
   add_digits([1, 2, 3], [2, 3, 4]) |> should.equal([3, 5, 7])
 }
