@@ -3,7 +3,6 @@ import gleam/dict
 import gleam/io
 import gleam/list
 import gleeunit
-import gleeunit/should
 import input
 
 pub fn main() -> Nil {
@@ -14,33 +13,15 @@ pub fn parse_test() {
   assert "bbb: ddd eee" |> parse_line == #("bbb", ["ddd", "eee"])
 }
 
-pub fn example_1_test() {
-  input.example |> solve1 |> should.equal(5)
+pub fn example_2_test() {
+  let results = input.example2 |> solve1("svr", "out")
+  assert results.num_paths_with_fft_and_dac == 2
 }
 
-pub fn problem_1_test() {
-  input.problem |> solve1 |> should.equal(448)
+pub fn problem_2_test() {
+  let results = input.problem |> solve1("svr", "out")
+  assert results.num_paths_with_fft_and_dac == 553204221431080
 }
-
-// pub fn example_2_test() {
-//   input.example2 |> solve2 |> should.equal(0)
-// }
-
-// pub fn problem_2_test() {
-//   input.problem |> solve2 |> should.equal(0)
-// }
-// pub fn mermaid_example_test() {
-//   io.println("\n == Example 1")
-//   input.example |> parse |> print_mermaid
-// }
-// pub fn mermaid_example2_test() {
-//   io.println("\n == Example 2")
-//   input.example2 |> parse |> print_mermaid
-// }
-// pub fn mermaid_problem_test() {
-//   io.println("\n == Problem")
-//   input.problem |> parse |> print_mermaid
-// }
 
 fn print_mermaid(input: dict.Dict(String, List(String))) {
   input
@@ -52,8 +33,8 @@ fn print_mermaid(input: dict.Dict(String, List(String))) {
 }
 
 pub fn reverse_dict_test() {
-  let input = dict.from_list([#("a", ["b", "c"]), #("b", ["c"])])
   // a points to b and c; b points to c
+  let input = dict.from_list([#("a", ["b", "c"]), #("b", ["c"])])
 
   // b is pointed-to by a, c is pointed-to by a and b, a is pointed-to by nobody
   let expected = dict.from_list([#("b", ["a"]), #("c", ["b", "a"]), #("a", [])])

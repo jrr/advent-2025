@@ -7,7 +7,7 @@ import gleam/set
 import gleam/string
 
 pub fn main() -> Nil {
-  io.println("Hello from advent!")
+  io.println_error("Hello from advent!")
 }
 
 pub fn parse(input: String) {
@@ -32,7 +32,6 @@ pub fn parse_line(s: String) -> #(String, List(String)) {
 type ConnectivityMap =
   dict.Dict(String, List(String))
 
-// fn count_paths(map: ConnectivityMap, from: String, to: String,including:) -> Int {
 pub fn reverse_dict(input: ConnectivityMap) -> ConnectivityMap {
   let what =
     input
@@ -51,8 +50,13 @@ pub fn reverse_dict(input: ConnectivityMap) -> ConnectivityMap {
   together
 }
 
-type NodeCount {
-  NodeCount(num_paths_to_here: Int)
+pub type NodeCount {
+  NodeCount(
+    num_paths_to_here: Int,
+    num_paths_with_fft: Int,
+    num_paths_with_dac: Int,
+    num_paths_with_fft_and_dac: Int,
+  )
 }
 
 pub fn find_entries(connectivity: ConnectivityMap) -> List(String) {
@@ -63,16 +67,16 @@ pub fn find_entries(connectivity: ConnectivityMap) -> List(String) {
   |> list.map(pair.first)
 }
 
-pub fn solve1(input: String) -> Int {
+pub fn solve1(input: String, start_node: String, end_node: String) -> NodeCount {
   let connectivity = input |> parse
 
-  let cleaned_tree: ConnectivityMap = clean_tree(connectivity, "you")
+  let cleaned_tree: ConnectivityMap = clean_tree(connectivity, start_node)
 
   let final_counts = recurse(cleaned_tree, dict.new())
 
-  let x = final_counts |> dict.get("out")
+  let x = final_counts |> dict.get(end_node)
   case x {
-    Ok(n) -> n.num_paths_to_here
+    Ok(n) -> n
     _ -> panic
   }
 }
@@ -83,23 +87,10 @@ pub fn clean_tree(
 ) -> dict.Dict(String, List(String)) {
   let entries =
     connectivity |> find_entries |> list.filter(fn(n) { n != entry_to_keep })
-  // echo entries as "entries to drop"
   case entries {
     [] -> connectivity
     x -> {
-      // io.println("dropping " <> string.join(x, ","))
       let without_nodes = connectivity |> dict.drop(x)
-      // let without_edges =
-      //   without_nodes
-      //   |> dict.map_values(fn(_, v) {
-      //     echo v as "drop from this list?"
-      //     v
-      //     |> list.filter(fn(s) {
-      //       x
-      //       |> list.contains(s)
-      //       |> bool.negate
-      //     })
-      //   })
       clean_tree(without_nodes, entry_to_keep)
     }
   }
@@ -138,16 +129,44 @@ fn consume_node(
   }
   let remaining_connectivity = connectivity |> dict.drop([start_node])
 
+  // io.println_error("== Node '" <> start_node <> "' ===")
+
   let updated_counts =
     target_nodes
     |> list.fold(counts, fn(accum_counts, target_node_name) {
-      let source_node = counts |> dict.get(start_node)
-      let num = case source_node {
-        Error(_) -> 1
-        Ok(node_count) -> node_count.num_paths_to_here
+      let source_node = accum_counts |> dict.get(start_node)
+      let node_count = case source_node {
+        Error(_) -> {
+          NodeCount(
+            num_paths_to_here: 1,
+            num_paths_with_dac: 0,
+            num_paths_with_fft: 0,
+            num_paths_with_fft_and_dac: 0,
+          )
+        }
+
+        Ok(node_count) -> {
+          let this_node_fft = [start_node] |> list.count(fn(s) { s == "fft" })
+          let this_node_dac = [start_node] |> list.count(fn(s) { s == "dac" })
+
+          NodeCount(
+            ..node_count,
+            num_paths_with_dac: node_count.num_paths_with_dac
+              + node_count.num_paths_to_here
+              * this_node_dac,
+            num_paths_with_fft: node_count.num_paths_with_fft
+              + node_count.num_paths_to_here
+              * this_node_fft,
+            num_paths_with_fft_and_dac: node_count.num_paths_with_fft_and_dac
+              + node_count.num_paths_with_dac
+              * this_node_fft
+              + node_count.num_paths_with_fft
+              * this_node_dac,
+          )
+        }
       }
 
-      increment_count(accum_counts, target_node_name, num)
+      increment_count(accum_counts, target_node_name, node_count)
     })
 
   #(remaining_connectivity, updated_counts)
@@ -156,19 +175,17 @@ fn consume_node(
 fn increment_count(
   counts: dict.Dict(String, NodeCount),
   start_node: String,
-  num: Int,
+  incoming_counts: NodeCount,
 ) {
-  let updates = [#(start_node, NodeCount(num))] |> dict.from_list
+  let updates = [#(start_node, incoming_counts)] |> dict.from_list
 
   dict.combine(counts, updates, fn(a, b) {
-    // io.println(
-    //   "count ("
-    //   <> start_node
-    //   <> ") : "
-    //   <> int.to_string(a.num_paths_to_here)
-    //   <> " += "
-    //   <> int.to_string(b.num_paths_to_here),
-    // )
-    NodeCount(a.num_paths_to_here + b.num_paths_to_here)
+    NodeCount(
+      num_paths_to_here: a.num_paths_to_here + b.num_paths_to_here,
+      num_paths_with_dac: a.num_paths_with_dac + b.num_paths_with_dac,
+      num_paths_with_fft: a.num_paths_with_fft + b.num_paths_with_fft,
+      num_paths_with_fft_and_dac: a.num_paths_with_fft_and_dac
+        + b.num_paths_with_fft_and_dac,
+    )
   })
 }
